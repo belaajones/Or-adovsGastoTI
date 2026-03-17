@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orçamento TI 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f4f6f9;color:#1a2333;font-size:14px}
+.header{background:#1a2333;color:#fff;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-logo{font-size:16px;font-weight:700}
+.header-badge{background:#2563eb;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.btn-upload{background:#2563eb;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-upload:hover{background:#1d4ed8}
+.main{max-width:1320px;margin:0 auto;padding:28px 24px}
+.month-tabs{display:flex;gap:4px;margin-bottom:24px;background:#e2e8f0;padding:4px;border-radius:8px;width:fit-content}
+.tab{padding:7px 16px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#64748b;font-family:inherit;transition:all .15s}
+.tab:hover{color:#1a2333}
+.tab.active{background:#fff;color:#1a2333;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.tab.no-data{opacity:.4;cursor:default;pointer-events:none}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border-radius:10px;padding:20px 22px;border:1px solid #e2e8f0}
+.kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:700;letter-spacing:-.5px;color:#1a2333;margin-bottom:4px}
+.kpi-sub{font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-green{background:#dcfce7;color:#16a34a}
+.badge-red{background:#fee2e2;color:#dc2626}
+.kpi-bar{height:4px;background:#f1f5f9;border-radius:2px;margin-top:12px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px}
+.alert{background:#fff7ed;border:1px solid #fed7aa;border-left:4px solid #f97316;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:flex;gap:12px}
+.alert.hidden{display:none}
+.alert-title{font-weight:700;font-size:13px;color:#c2410c;margin-bottom:6px}
+.alert-list{font-size:12px;color:#7c2d12;line-height:1.9}
+.alert-list b{font-weight:600}
+.charts-grid{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:24px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:20px 22px}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:16px}
+.chart-wrap{position:relative;height:230px}
+.sg-list{display:flex;flex-direction:column;gap:13px}
+.sg-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.sg-name{font-size:12px;font-weight:600;color:#374151}
+.sg-pct{font-size:11px;color:#94a3b8}
+.sg-track{height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.sg-fill{height:100%;border-radius:4px}
+.annual-card{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:20px 22px;margin-bottom:24px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 12px;background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#64748b;cursor:pointer;white-space:nowrap}
+thead th:hover{color:#1a2333}
+tbody td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tbody tr:hover td{background:#f8fafc}
+tr.highlight td{background:#eff6ff}
+.mini-progress{height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;width:120px}
+.mini-fill{height:100%;border-radius:3px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.tag-infra{background:#dbeafe;color:#1d4ed8}
+.tag-dev{background:#fef9c3;color:#92400e}
+.tag-dados{background:#f3e8ff;color:#7c3aed}
+.tag-geral{background:#f1f5f9;color:#475569}
+.num{font-variant-numeric:tabular-nums}
+.pos{color:#16a34a;font-weight:600}
+.neg{color:#dc2626;font-weight:600}
+.muted{color:#94a3b8}
+.table-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.search-input{border:1px solid #e2e8f0;border-radius:6px;padding:7px 12px;font-size:13px;font-family:inherit;color:#1a2333;outline:none;width:240px}
+.search-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.overflow-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-msg{text-align:center;padding:40px;color:#94a3b8;font-size:13px;display:none}
+footer{text-align:center;padding:24px;font-size:12px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">📊 Orçamento TI</div>
+    <div class="header-badge">2026</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <span id="lastUpdate" style="font-size:12px;color:#94a3b8"></span>
+    <label class="btn-upload" for="fileInput">↑ Atualizar Planilha</label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+  </div>
+</div>
+
+<div class="main">
+  <div class="month-tabs" id="monthTabs"></div>
+  <div class="alert hidden" id="alertBox">
+    <div>
+      <div class="alert-title">⚠️ Itens com Estouro de Orçamento</div>
+      <div class="alert-list" id="alertList"></div>
+    </div>
+  </div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Orçado vs Realizado — 2026</div>
+      <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="sgTitle">Gasto por Subgrupo</div>
+      <div class="sg-list" id="sgList"></div>
+    </div>
+  </div>
+  <div class="annual-card">
+    <div class="card-title">Consolidado Anual</div>
+    <table>
+      <thead><tr>
+        <th>Mês</th>
+        <th style="text-align:right">Orçado (R$)</th>
+        <th style="text-align:right">Realizado (R$)</th>
+        <th style="text-align:right">Saving (R$)</th>
+        <th style="text-align:right">% Utilizado</th>
+        <th>Progresso</th>
+      </tr></thead>
+      <tbody id="annualBody"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="table-controls">
+      <div class="card-title" id="detailTitle" style="margin-bottom:0">Detalhamento por Fornecedor</div>
+      <input class="search-input" id="searchInput" placeholder="Buscar fornecedor ou serviço...">
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th onclick="sort('fornecedor')">Fornecedor ↕</th>
+          <th onclick="sort('subgrupo')">Subgrupo ↕</th>
+          <th>Serviço</th>
+          <th onclick="sort('orcado')" style="text-align:right">Orçado ↕</th>
+          <th onclick="sort('gasto')" style="text-align:right">Realizado ↕</th>
+          <th onclick="sort('diferenca')" style="text-align:right">Saving ↕</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+      <div class="empty-msg" id="emptyMsg">Nenhum registro encontrado.</div>
+    </div>
+  </div>
+</div>
+<footer>Orçamento TI 2026 · Uso interno</footer>
+
+<script>
+const EMBEDDED = {"compilado":[{"mes":"Janeiro","orcado":704580.24,"realizado":461322.11,"diferenca":243258.13,"utilizado":0.6547},{"mes":"Fevereiro","orcado":774190.69,"realizado":499661.29,"diferenca":274529.4,"utilizado":0.6454},{"mes":"Março","orcado":654921.05,"realizado":0,"diferenca":654921.05,"utilizado":0},{"mes":"Abril","orcado":778521.07,"realizado":0,"diferenca":778521.07,"utilizado":0},{"mes":"Maio","orcado":739312.13,"realizado":0,"diferenca":739312.13,"utilizado":0},{"mes":"Junho","orcado":672801.13,"realizado":0,"diferenca":672801.13,"utilizado":0},{"mes":"Julho","orcado":721014.13,"realizado":0,"diferenca":721014.13,"utilizado":0},{"mes":"Agosto","orcado":712551.13,"realizado":0,"diferenca":712551.13,"utilizado":0},{"mes":"Setembro","orcado":697038.54,"realizado":0,"diferenca":697038.54,"utilizado":0},{"mes":"Outubro","orcado":700498.54,"realizado":0,"diferenca":700498.54,"utilizado":0},{"mes":"Novembro","orcado":703493.54,"realizado":0,"diferenca":703493.54,"utilizado":0},{"mes":"Dezembro","orcado":695741.54,"realizado":0,"diferenca":695741.54,"utilizado":0}],"months":{"Janeiro":[{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Locação de Máquinas e Equipamentos","fornecedor":"VOKE","orcado":8078.54,"gasto":8078.54,"diferenca":0},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Link de Internet","fornecedor":"AMERICAN TOWER","orcado":1650,"gasto":1614.65,"diferenca":35.35},{"mes":"Janeiro","subgrupo":"DADOS","servico":"Licenciamento Software","fornecedor":"2CAPCTHA/ANTI CAPCTHA","orcado":1350,"gasto":596.07,"diferenca":753.93},{"mes":"Janeiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"ASSERTIVA TECNOLOGIA DA INFORMACAO LTDA","orcado":3251.98,"gasto":3251.98,"diferenca":0},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"BASE 2 - SWL","orcado":35000,"gasto":11250.43,"diferenca":23749.57},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"BHS","orcado":50000,"gasto":57998.54,"diferenca":-7998.54},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Telefonia Móvel","fornecedor":"CLARO","orcado":2100,"gasto":1894.78,"diferenca":205.22},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"CLOUDFLARE","orcado":1510,"gasto":1505.93,"diferenca":4.07},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"DOC9 DIGITALIZACAO E GERENCIAMENTO DE ARQUIVOS LTDA","orcado":6013,"gasto":6028,"diferenca":-15},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Alocação mão de obra","fornecedor":"EMX COMERCIO E SERVICOS DE TI LTDA","orcado":2877.05,"gasto":2877.05,"diferenca":0},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Serviços Prestados por PJ","fornecedor":"RODRIGO RIBEIRO DE BRITO TECNOLOGIA DA INFORMACAO LTDA","orcado":25000,"gasto":0,"diferenca":25000},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Serviços Prestados por PJ","fornecedor":"IGOR VILAR","orcado":17000,"gasto":22956.39,"diferenca":-5956.39},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇA AZURE","orcado":20000,"gasto":16573.16,"diferenca":3426.84},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇAS AWS","orcado":93225,"gasto":80851.94,"diferenca":12373.06},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇAS OFFICE","orcado":44500,"gasto":37692.02,"diferenca":6807.98},{"mes":"Janeiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"LEMIT","orcado":500,"gasto":470.64,"diferenca":29.36},{"mes":"Janeiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"MAESTRE INCUBADORA DE DADOS LTDA","orcado":2100,"gasto":2085.72,"diferenca":14.28},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Locação de Máquinas e Equipamentos","fornecedor":"MINASCOPY","orcado":3100,"gasto":3057.85,"diferenca":42.15},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Link de Internet","fornecedor":"MUNDIVOX NETWORKS LTDA","orcado":1650,"gasto":1600,"diferenca":50},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"MYTEC TECNOLOGIA EM NUVEM LTDA","orcado":7300,"gasto":7000,"diferenca":300},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"NEW RELIC","orcado":1423,"gasto":2468.28,"diferenca":-1045.28},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"POWER TUNING","orcado":3860.64,"gasto":3860.64,"diferenca":0},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"POWER TUNING  - POWER EMBEDDED","orcado":900,"gasto":810,"diferenca":90},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"RAROLABS","orcado":29350,"gasto":14000,"diferenca":15350},{"mes":"Janeiro","subgrupo":"GERAL TECNOLOGIA","servico":"Licenciamento Software","fornecedor":"SERPRO","orcado":1350,"gasto":82.61,"diferenca":1267.39},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"SHIELD","orcado":4390,"gasto":4389.25,"diferenca":0.75},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"SNYK","orcado":911,"gasto":1827.52,"diferenca":-916.52},{"mes":"Janeiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"TRIGGO LABS CONSULTORIA EM TI LTDA","orcado":120000,"gasto":114525.95,"diferenca":5474.05},{"mes":"Janeiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"ZOOX","orcado":4414.03,"gasto":5097.59,"diferenca":-683.56},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"NIC.BR","orcado":626,"gasto":600,"diferenca":26},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Materiais de Informatica","fornecedor":"MERCADO LIVRE","orcado":3500,"gasto":3235.91,"diferenca":264.09},{"mes":"Janeiro","subgrupo":"GERAL TECNOLOGIA","servico":"Eventos","fornecedor":"EVENTOS INTERNOS","orcado":1500,"gasto":0,"diferenca":1500},{"mes":"Janeiro","subgrupo":"GERAL TECNOLOGIA","servico":"Enriquecimento de Dados","fornecedor":"ESCAVADOR","orcado":500,"gasto":61.01,"diferenca":438.99},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Materiais de Informatica","fornecedor":"BH NOTEBOOKS","orcado":1000,"gasto":0,"diferenca":1000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"OPEN AI","orcado":1000,"gasto":1617.94,"diferenca":-617.94},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"GROQ","orcado":200,"gasto":4.87,"diferenca":195.13},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"SONARCLOUD","orcado":500,"gasto":180.93,"diferenca":319.07},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"BLÜ","orcado":300,"gasto":379.73,"diferenca":-79.73},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"DELL","orcado":65000,"gasto":0,"diferenca":65000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETO INFRAESTRUTURA - DR","orcado":28000,"gasto":0,"diferenca":28000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - BACKUP","orcado":6000,"gasto":0,"diferenca":6000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - DLP","orcado":55000,"gasto":0,"diferenca":55000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - SASE","orcado":25000,"gasto":0,"diferenca":25000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - ANONIMIZAÇÃO DE DADOS","orcado":20000,"gasto":0,"diferenca":20000},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"Exclusivo - Plataforma FIGMA","orcado":0,"gasto":51.57,"diferenca":-51.57},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"GOOGLE CLOUD","orcado":0,"gasto":95.39,"diferenca":-95.39},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"DID TELEFONIA","orcado":0,"gasto":78.9,"diferenca":-78.9},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO BRASIL LTDA - WINDOWS SERVER","orcado":0,"gasto":656.4,"diferenca":-656.4},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO BRASIL LTDA - WINDOWS 10 ESU","orcado":0,"gasto":35666.8,"diferenca":-35666.8},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"TERAMIND","orcado":0,"gasto":420.9,"diferenca":-420.9},{"mes":"Janeiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"GoDaddy.com","orcado":0,"gasto":3405.08,"diferenca":-3405.08}],"Fevereiro":[{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Locação de Máquinas e Equipamentos","fornecedor":"VOKE","orcado":8078.54,"gasto":8078.54,"diferenca":0},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Link de Internet","fornecedor":"AMERICAN TOWER","orcado":1650,"gasto":1614.65,"diferenca":35.35},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Licenciamento Software","fornecedor":"2CAPCTHA/ANTI CAPCTHA","orcado":250,"gasto":577.55,"diferenca":-327.55},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"ASSERTIVA TECNOLOGIA DA INFORMACAO LTDA","orcado":3251.98,"gasto":3251.98,"diferenca":0},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"BASE 2 - SWL","orcado":35000,"gasto":16190.29,"diferenca":18809.71},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"BHS","orcado":50000,"gasto":83929.38,"diferenca":-33929.38},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Telefonia Móvel","fornecedor":"CLARO","orcado":2100,"gasto":1847.95,"diferenca":252.05},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"CLOUDFLARE","orcado":1510,"gasto":1359.45,"diferenca":150.55},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"DOC9 DIGITALIZACAO E GERENCIAMENTO DE ARQUIVOS LTDA","orcado":6013,"gasto":6028,"diferenca":-15},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"EMX COMERCIO E SERVICOS DE TI LTDA","orcado":2877.05,"gasto":2877.05,"diferenca":0},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Serviços Prestados por PJ","fornecedor":"RODRIGO RIBEIRO DE BRITO TECNOLOGIA DA INFORMACAO LTDA","orcado":25000,"gasto":20000,"diferenca":5000},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Serviços Prestados por PJ","fornecedor":"IGOR VILAR","orcado":17000,"gasto":17000,"diferenca":0},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇA AZURE","orcado":20000,"gasto":14998.13,"diferenca":5001.87},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇAS AWS","orcado":93225,"gasto":76698.25,"diferenca":16526.75},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"INGRAM MICRO - LICENÇAS OFFICE","orcado":44500,"gasto":43751.9,"diferenca":748.1},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"LEMIT","orcado":500,"gasto":948.96,"diferenca":-448.96},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Enriquecimento de Dados","fornecedor":"MAESTRE INCUBADORA DE DADOS LTDA","orcado":2100,"gasto":1393.14,"diferenca":706.86},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Locação de Máquinas e Equipamentos","fornecedor":"MINASCOPY","orcado":3100,"gasto":3296.87,"diferenca":-196.87},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Link de Internet","fornecedor":"MUNDIVOX NETWORKS LTDA","orcado":1650,"gasto":1600,"diferenca":50},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"MYTEC TECNOLOGIA EM NUVEM LTDA","orcado":7300,"gasto":7000,"diferenca":300},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"NEW RELIC","orcado":1423,"gasto":1177.19,"diferenca":245.81},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"POWER TUNING","orcado":3860.64,"gasto":3860.64,"diferenca":0},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"POWER TUNING  - POWER EMBEDDED","orcado":900,"gasto":815,"diferenca":85},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Alocação mão de obra","fornecedor":"RAROLABS","orcado":29350,"gasto":0,"diferenca":29350},{"mes":"Fevereiro","subgrupo":"GERAL TECNOLOGIA","servico":"Licenciamento Software","fornecedor":"SERPRO","orcado":1350,"gasto":388.43,"diferenca":961.57},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"SHIELD","orcado":4390,"gasto":4389.25,"diferenca":0.75},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Licenciamento Software","fornecedor":"SNYK","orcado":911,"gasto":826.13,"diferenca":84.87},{"mes":"Fevereiro","subgrupo":"DADOS","servico":"Licenciamento Software","fornecedor":"TD SYNNEX BRASIL LTDA","orcado":650,"gasto":421.15,"diferenca":228.85},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Alocação mão de obra","fornecedor":"TRIGGO LABS CONSULTORIA EM TI LTDA","orcado":120000,"gasto":167915.87,"diferenca":-47915.87},{"mes":"Fevereiro","subgrupo":"DESENVOLVIMENTO","servico":"Enriquecimento de Dados","fornecedor":"ZOOX","orcado":4414.03,"gasto":4270,"diferenca":144.03},{"mes":"Fevereiro","subgrupo":"GERAL TECNOLOGIA","servico":"Materiais de Informatica","fornecedor":"MERCADO LIVRE","orcado":3500,"gasto":3155.54,"diferenca":344.46},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Eventos","fornecedor":"EVENTOS INTERNOS","orcado":1500,"gasto":0,"diferenca":1500},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"ESCAVADOR","orcado":500,"gasto":0,"diferenca":500},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"BH NOTEBOOKS","orcado":1000,"gasto":0,"diferenca":1000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"OPEN AI","orcado":1000,"gasto":0,"diferenca":1000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"GROQ","orcado":200,"gasto":0,"diferenca":200},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"SONARCLOUD","orcado":500,"gasto":0,"diferenca":500},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Licenciamento Software","fornecedor":"BLÜ","orcado":300,"gasto":0,"diferenca":300},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"A DEFINIR (PENTEST)","orcado":90000,"gasto":0,"diferenca":90000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETO INFRA - TROCA EQUIPAMENTOS ANTIGOS","orcado":2122.31,"gasto":0,"diferenca":2122.31},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETO INFRA - TROCA EQUIPAMENTOS - Acessórios","orcado":30000,"gasto":0,"diferenca":30000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETO INFRA - TROCA EQUIPAMENTOS TERCEIROS","orcado":14214.14,"gasto":0,"diferenca":14214.14},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETO INFRAESTRUTURA - DR","orcado":28000,"gasto":0,"diferenca":28000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - BACKUP","orcado":6000,"gasto":0,"diferenca":6000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - DLP","orcado":55000,"gasto":0,"diferenca":55000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - SASE","orcado":25000,"gasto":0,"diferenca":25000},{"mes":"Fevereiro","subgrupo":"INFRAESTRUTURA","servico":"Projetos","fornecedor":"PROJETOS DE SI - ANONIMIZAÇÃO DE DADOS","orcado":20000,"gasto":0,"diferenca":20000}]}};
+
+let DATA = JSON.parse(JSON.stringify(EMBEDDED));
+let activeMonth = 'Janeiro';
+let sortCol = null, sortDir = 1, currentRows = [];
+let chartInst = null;
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const SG_COLORS = {'INFRAESTRUTURA':'#2563eb','DESENVOLVIMENTO':'#d97706','DADOS':'#7c3aed','GERAL TECNOLOGIA':'#64748b'};
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  document.getElementById('lastUpdate').textContent = 'Última atualização: ' + new Date().toLocaleDateString('pt-BR');
+});
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      DATA = parseWB(wb);
+      init();
+      document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleDateString('pt-BR');
+    } catch(err) { alert('Erro: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function parseWB(wb) {
+  const compilado = [];
+  if (wb.SheetNames.includes('Compilado')) {
+    XLSX.utils.sheet_to_json(wb.Sheets['Compilado'],{header:1}).forEach(r => {
+      if (MONTHS.includes(r[1])) compilado.push({mes:r[1],orcado:+r[2]||0,realizado:+r[3]||0,diferenca:+r[4]||0,utilizado:+r[5]||0});
+    });
+  }
+  const months = {};
+  wb.SheetNames.forEach(name => {
+    if (!MONTHS.includes(name)) return;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1});
+    months[name] = [];
+    for (let i=1;i<rows.length;i++) {
+      const r = rows[i], forn = (r[4]||'').toString().trim();
+      if (forn && forn!=='TOTAL') months[name].push({mes:(r[0]||name).toString(),subgrupo:(r[2]||'').toString().trim(),servico:(r[3]||'').toString().trim(),fornecedor:forn,orcado:+r[5]||0,gasto:+r[6]||0,diferenca:+r[7]||0});
+    }
+  });
+  return {compilado, months};
+}
+
+function init() {
+  buildTabs(); buildAnnualTable(); buildMainChart();
+  const first = MONTHS.find(m => DATA.months[m]) || 'Janeiro';
+  setMonth(DATA.months[activeMonth] ? activeMonth : first);
+}
+
+function buildTabs() {
+  document.getElementById('monthTabs').innerHTML = MONTHS.map((m,i) =>
+    `<button class="tab${m===activeMonth?' active':''}${!DATA.months[m]?' no-data':''}" onclick="${DATA.months[m]?`setMonth('${m}')`:'void(0)'}" title="${m}">${m.slice(0,3)}</button>`
+  ).join('');
+}
+
+function setMonth(m) {
+  activeMonth = m;
+  document.querySelectorAll('.tab').forEach((t,i) => { t.className = 'tab' + (MONTHS[i]===m?' active':'') + (!DATA.months[MONTHS[i]]?' no-data':''); });
+  buildKPIs(m); buildAlerts(m); buildSgBars(m); buildDetailTable(m);
+  document.getElementById('sgTitle').textContent = 'Gasto por Subgrupo — ' + m;
+  document.getElementById('detailTitle').textContent = 'Detalhamento por Fornecedor — ' + m;
+  document.getElementById('searchInput').value = '';
+  buildAnnualTable();
+}
+
+function buildKPIs(m) {
+  const c = DATA.compilado.find(x=>x.mes===m)||{};
+  const rows = DATA.months[m]||[];
+  const orc = c.orcado||0, real = c.realizado||0, sav = orc-real, pct = orc>0?real/orc:0;
+  const over = rows.filter(r=>r.diferenca<-1);
+  document.getElementById('kpiGrid').innerHTML = [
+    {label:'Total Orçado',val:fmt(orc),sub:m+' 2026',bar:null,badge:null},
+    {label:'Total Realizado',val:fmt(real),sub:p(pct)+' do orçado',bar:{pct,col:pct>1?'#dc2626':pct>0.85?'#d97706':'#16a34a'},badge:pct>1?{t:'▲ Estouro',c:'badge-red'}:{t:'✓ OK',c:'badge-green'}},
+    {label:'Saving Total',val:fmt(sav),sub:'orçado menos realizado',bar:null,badge:sav>=0?{t:'Positivo',c:'badge-green'}:{t:'Negativo',c:'badge-red'}},
+    {label:'Itens em Estouro',val:over.length,sub:over.length===0?'todos dentro do orçado':over.length+' fornecedor(es)',bar:null,badge:over.length>0?{t:'⚠ Atenção',c:'badge-red'}:{t:'✓ Nenhum',c:'badge-green'}}
+  ].map(k=>`<div class="kpi">
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-value">${k.val}</div>
+    <div class="kpi-sub">${k.sub}${k.badge?` <span class="badge ${k.badge.c}">${k.badge.t}</span>`:''}</div>
+    ${k.bar?`<div class="kpi-bar"><div class="kpi-bar-fill" style="width:${Math.min(k.bar.pct*100,100)}%;background:${k.bar.col}"></div></div>`:''}
+  </div>`).join('');
+}
+
+function buildAlerts(m) {
+  const over = (DATA.months[m]||[]).filter(r=>r.diferenca<-100).sort((a,b)=>a.diferenca-b.diferenca);
+  const box = document.getElementById('alertBox');
+  if (!over.length) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  document.getElementById('alertList').innerHTML = over.slice(0,6).map(r=>`${r.fornecedor} — estouro de <b>${fmt(Math.abs(r.diferenca))}</b>`).join('<br>');
+}
+
+function buildMainChart() {
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(document.getElementById('mainChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: DATA.compilado.map(c=>c.mes.slice(0,3)),
+      datasets: [
+        {label:'Orçado',data:DATA.compilado.map(c=>c.orcado),backgroundColor:'#bfdbfe',borderColor:'#2563eb',borderWidth:1.5,borderRadius:3},
+        {label:'Realizado',data:DATA.compilado.map(c=>c.realizado),backgroundColor:'#bbf7d0',borderColor:'#16a34a',borderWidth:1.5,borderRadius:3}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#64748b',font:{family:'Inter',size:12},padding:16,boxWidth:12}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+      scales:{x:{ticks:{color:'#94a3b8',font:{family:'Inter',size:11}},grid:{color:'#f1f5f9'}},y:{ticks:{color:'#94a3b8',font:{family:'Inter',size:11},callback:v=>fK(v)},grid:{color:'#f1f5f9'}}}
+    }
+  });
+}
+
+function buildSgBars(m) {
+  const groups = {}; (DATA.months[m]||[]).forEach(r=>{ const g=r.subgrupo||'OUTROS'; groups[g]=(groups[g]||0)+(r.gasto||0); });
+  const total = Object.values(groups).reduce((s,v)=>s+v,0);
+  document.getElementById('sgList').innerHTML = Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`
+    <div>
+      <div class="sg-header"><span class="sg-name">${g}</span><span class="sg-pct">${fmt(v)} · ${p(total>0?v/total:0)}</span></div>
+      <div class="sg-track"><div class="sg-fill" style="width:${total>0?v/total*100:0}%;background:${SG_COLORS[g]||'#64748b'}"></div></div>
+    </div>`).join('');
+}
+
+function buildAnnualTable() {
+  const totOrc = DATA.compilado.reduce((s,c)=>s+c.orcado,0);
+  const totReal = DATA.compilado.reduce((s,c)=>s+c.realizado,0);
+  document.getElementById('annualBody').innerHTML = [
+    ...DATA.compilado.map(c => {
+      const pct = c.orcado>0?c.realizado/c.orcado:0, sav = c.orcado-c.realizado, has = c.realizado>0;
+      const bc = pct>1?'#dc2626':pct>0.85?'#d97706':'#16a34a';
+      return `<tr class="${c.mes===activeMonth?'highlight':''}">
+        <td><strong>${c.mes}</strong></td>
+        <td class="num" style="text-align:right">${fmt(c.orcado)}</td>
+        <td class="num" style="text-align:right">${has?fmt(c.realizado):'<span class="muted">—</span>'}</td>
+        <td class="num ${has?(sav>=0?'pos':'neg'):'muted'}" style="text-align:right">${has?(sav>=0?'+':'')+fmt(sav):'—'}</td>
+        <td class="num" style="text-align:right">${has?p(pct):'—'}</td>
+        <td style="width:130px">${has?`<div class="mini-progress"><div class="mini-fill" style="width:${Math.min(pct*100,100)}%;background:${bc}"></div></div>`:''}</td>
+      </tr>`;
+    }),
+    `<tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
+      <td><strong>TOTAL ANUAL</strong></td>
+      <td class="num" style="text-align:right;font-weight:700">${fmt(totOrc)}</td>
+      <td class="num" style="text-align:right;font-weight:700">${fmt(totReal)}</td>
+      <td class="num ${totOrc-totReal>=0?'pos':'neg'}" style="text-align:right;font-weight:700">${totOrc-totReal>=0?'+':''}${fmt(totOrc-totReal)}</td>
+      <td class="num" style="text-align:right;font-weight:700">${totOrc>0?p(totReal/totOrc):'—'}</td>
+      <td></td>
+    </tr>`
+  ].join('');
+}
+
+function buildDetailTable(m) { renderRows(DATA.months[m]||[]); }
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  renderRows((DATA.months[activeMonth]||[]).filter(r=>r.fornecedor.toLowerCase().includes(q)||r.servico.toLowerCase().includes(q)||r.subgrupo.toLowerCase().includes(q)));
+});
+
+function renderRows(rows) {
+  currentRows = rows;
+  const tb = document.getElementById('detailBody'), em = document.getElementById('emptyMsg');
+  if (!rows.length) { tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display = 'none';
+  const tagCls = s => s.includes('INFRA')?'tag-infra':s.includes('DESENV')?'tag-dev':s.includes('DADOS')?'tag-dados':'tag-geral';
+  tb.innerHTML = rows.map(r => {
+    const d = r.diferenca;
+    const status = d<-1?`<span style="color:#dc2626;font-weight:600;font-size:12px">▲ ${fmt(Math.abs(d))}</span>`:d>1?`<span style="color:#16a34a;font-weight:600;font-size:12px">▼ ${fmt(d)}</span>`:`<span class="muted" style="font-size:12px">—</span>`;
+    return `<tr>
+      <td class="overflow-cell" title="${r.fornecedor}">${r.fornecedor}</td>
+      <td><span class="tag ${tagCls(r.subgrupo)}">${r.subgrupo}</span></td>
+      <td style="color:#64748b;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.servico}</td>
+      <td class="num" style="text-align:right">${r.orcado>0?fmt(r.orcado):'<span class="muted">—</span>'}</td>
+      <td class="num" style="text-align:right">${r.gasto>0?fmt(r.gasto):'<span class="muted">—</span>'}</td>
+      <td class="num ${d<-1?'neg':d>1?'pos':'muted'}" style="text-align:right">${Math.abs(d)>0.5?(d>=0?'+':'')+fmt(d):'—'}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sort(col) {
+  sortDir = sortCol===col ? sortDir*-1 : 1; sortCol = col;
+  renderRows([...currentRows].sort((a,b)=>(a[col]>b[col]?1:a[col]<b[col]?-1:0)*sortDir));
+}
+
+function fmt(v) { return v===null||v===undefined?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function p(v) { return (v*100).toFixed(1)+'%'; }
+function fK(v) { return v>=1e6?'R$'+(v/1e6).toFixed(1)+'M':v>=1e3?'R$'+(v/1e3).toFixed(0)+'K':'R$'+v; }
+</script>
+</body>
+</html>
